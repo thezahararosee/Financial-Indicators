@@ -1,0 +1,56 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © thezahararose
+
+//@version=6
+indicator("True STDV", overlay=true)
+
+// Inputs
+src         = input.source(close, title="Source Price")
+basis_type  = input.string("SMA", title="Dynamic Baseline Type", options=["SMA", "EMA", "VWAP"])
+length      = input.int(20, title="Dynamic Lookback Period", minval=1)
+
+// Color & Style Inputs
+color_p3   = input.color(color.new(color.red, 0), title="+3 StDev (0.14% Outer Premium)")
+color_p2   = input.color(color.new(color.orange, 0), title="+2 StDev (2.27% Premium)")
+color_p1   = input.color(color.new(color.yellow, 0), title="+1 StDev (15.87% Mild Premium)")
+color_mean = input.color(color.new(color.blue, 0), title="0 StDev / Mean (50% Equilibrium)")
+color_m1   = input.color(color.new(color.yellow, 0), title="-1 StDev (15.87% Mild Discount)")
+color_m2   = input.color(color.new(color.orange, 0), title="-2 StDev (2.27% Discount)")
+color_m3   = input.color(color.new(color.red, 0), title="-3 StDev (0.14% Outer Discount)")
+
+// Moving Baseline Calculation
+float basis = na
+if basis_type == "VWAP"
+    basis := ta.vwap(src)
+else if basis_type == "SMA"
+    basis := ta.sma(src, length)
+else if basis_type == "EMA"
+    basis := ta.ema(src, length)
+
+// This continuously calculates the change of price around the moving mean
+stdev_value = ta.stdev(src, length)
+
+
+float upper_3 = basis + (3.0 * stdev_value)
+float upper_2 = basis + (2.0 * stdev_value)
+float upper_1 = basis + (1.0 * stdev_value)
+float mean    = basis
+float lower_1 = basis - (1.0 * stdev_value)
+float lower_2 = basis - (2.0 * stdev_value)
+float lower_3 = basis - (3.0 * stdev_value)
+
+// Continuous Moving Curves 
+plot(upper_3, title="+3σ Moving Line", color=color_p3, linewidth=2, style=plot.style_line)
+plot(upper_2, title="+2σ Moving Line", color=color_p2, linewidth=1, style=plot.style_line)
+plot(upper_1, title="+1σ Moving Line", color=color_p1, linewidth=1, style=plot.style_line)
+
+plot(mean, title="0σ Dynamic Mean", color=color_mean, linewidth=2, style=plot.style_line)
+
+plot(lower_1, title="-1σ Moving Line", color=color_m1, linewidth=1, style=plot.style_line)
+plot(lower_2, title="-2σ Moving Line", color=color_m2, linewidth=1, style=plot.style_line)
+plot(lower_3, title="-3σ Moving Line", color=color_m3, linewidth=2, style=plot.style_line)
+
+// Value Area Shading
+p_u1 = plot(upper_1, display=display.none)
+p_l1 = plot(lower_1, display=display.none)
+fill(p_u1, p_l1, color=color.new(color.blue, 96), title="68.2% Core Value Area Shading")
